@@ -4,9 +4,26 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
+# This was added to fix this issue => from models import setup_db, Question, Category 
+# ModuleNotFoundError: No module named 'models'
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
+
+
+#This function used to paginate the questions 
+def paginate_questions(request, selection):
+    page = request.args.get('page', 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE
+  
+    questions = [question.format() for question in selection]
+    current_questions = questions[start:end]
+    return current_questions
+
 
 def create_app(test_config=None):
   # create and configure the app
@@ -16,16 +33,33 @@ def create_app(test_config=None):
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
-
+  CORS(app)
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
-
+  # CORS Headers 
+  @app.after_request
+  def after_request(response):
+      response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
+      response.headers.add('Access-Control-Allow-Methods', 'GET,POST,DELETE')
+      return response
   '''
   @TODO: 
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
+  @app.route('/categories')
+  def retrieve_categories(): 
+      categories = Category.query.all()
+      #current_categories = paginate_books(request,selection)        
+      if categories is None or len(categories)==0: 
+          abort(404)
+      jasonified_categories = {category.id: category.type for category in categories}
+      return jsonify({
+          'success': True,
+          'books':jasonified_categories,
+          'total_books':len(categories)
+      })  
 
 
   '''
